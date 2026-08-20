@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "checkdigit"
+version = "0.1.0"
+description = "Check digit calculation and validation for ISBN and common retail barcodes"
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.9"
+authors = [{ name = "karenj948" }]
+
+[project.scripts]
+checkdigit = "checkdigit.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["checkdigit*"]
