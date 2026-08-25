@@ -7,6 +7,9 @@ code into an invalid one. This library computes and validates those digits
 for the formats you actually run into:
 
 - ISBN-10 and ISBN-13 (mod 11 and mod 10 respectively; ISBN-10 can end in `X`)
+- ISSN (mod 11, same shape as ISBN-10 but 7 digits wide, can also end in `X`)
+- ISMN, the old 10-character `M-...` form (mod 10, reuses the GS1 algorithm
+  by treating the leading `M` as the digit 3)
 - EAN-13, UPC-A, and EAN-8 (all the same mod-10 GS1 algorithm, just different
   lengths)
 
@@ -61,7 +64,7 @@ $ python -m checkdigit.cli convert 0-306-40615-2
 
 Give a subcommand a payload (missing its check digit) and it computes the
 check digit. Give it a full code and it validates. Subcommands: `isbn10`,
-`isbn13`, `ean13`, `upca`, `ean8`, `convert`.
+`isbn13`, `issn`, `ismn`, `ean13`, `upca`, `ean8`, `convert`.
 
 Installing the package (`pip install -e .`) also gives you a `checkdigit`
 console script that does the same thing without the `-m` invocation.

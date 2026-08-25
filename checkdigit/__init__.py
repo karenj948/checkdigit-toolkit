@@ -9,10 +9,14 @@ from .core import (
     is_valid_gs1,
     is_valid_isbn10,
     is_valid_isbn13,
+    is_valid_ismn,
+    is_valid_issn,
     is_valid_upca,
     isbn10_check_digit,
     isbn10_to_isbn13,
     isbn13_check_digit,
+    ismn_check_digit,
+    issn_check_digit,
     upca_check_digit,
 )
 
@@ -27,9 +31,13 @@ __all__ = [
     "is_valid_gs1",
     "is_valid_isbn10",
     "is_valid_isbn13",
+    "is_valid_ismn",
+    "is_valid_issn",
     "is_valid_upca",
     "isbn10_check_digit",
     "isbn10_to_isbn13",
     "isbn13_check_digit",
+    "ismn_check_digit",
+    "issn_check_digit",
     "upca_check_digit",
 ]

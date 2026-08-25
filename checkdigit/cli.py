@@ -13,6 +13,8 @@ from . import core
 _SPECS = {
     "isbn10": (core.is_valid_isbn10, core.isbn10_check_digit, 9, 10),
     "isbn13": (core.is_valid_isbn13, core.isbn13_check_digit, 12, 13),
+    "issn": (core.is_valid_issn, core.issn_check_digit, 7, 8),
+    "ismn": (core.is_valid_ismn, core.ismn_check_digit, 9, 10),
     "ean13": (core.is_valid_ean13, core.ean13_check_digit, 12, 13),
     "upca": (core.is_valid_upca, core.upca_check_digit, 11, 12),
     "ean8": (core.is_valid_ean8, core.ean8_check_digit, 7, 8),
@@ -54,7 +56,7 @@ def _handle_convert(code):
 def build_parser():
     parser = argparse.ArgumentParser(
         prog="checkdigit",
-        description="Compute or validate check digits for ISBN and barcode formats.",
+        description="Compute or validate check digits for ISBN, ISSN, ISMN, and barcode formats.",
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
 

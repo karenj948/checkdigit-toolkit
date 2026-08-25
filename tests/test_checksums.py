@@ -77,6 +77,85 @@ class Isbn13Tests(unittest.TestCase):
         self.assertEqual(core.isbn10_to_isbn13("0-8044-2957-X"), "9780804429573")
 
 
+class IssnTests(unittest.TestCase):
+    VALID = [
+        ("Mathematical Reviews", "0378-5955"),
+        ("plain", "03785955"),
+        ("check digit is 0", "2049-3630"),
+        ("check digit is X", "1000-002X"),
+        ("all zeros", "00000000"),
+    ]
+
+    INVALID = [
+        ("wrong final digit", "0378-5954"),
+        ("too short", "037859"),
+        ("too long", "037859551"),
+        ("letter in payload", "037A5955"),
+        ("empty string", ""),
+    ]
+
+    def test_valid_codes(self):
+        for label, code in self.VALID:
+            with self.subTest(label):
+                self.assertTrue(core.is_valid_issn(code))
+
+    def test_invalid_codes(self):
+        for label, code in self.INVALID:
+            with self.subTest(label):
+                self.assertFalse(core.is_valid_issn(code))
+
+    def test_check_digit_examples(self):
+        self.assertEqual(core.issn_check_digit("0378595"), "5")
+        self.assertEqual(core.issn_check_digit("2049363"), "0")
+
+    def test_check_digit_rejects_wrong_length(self):
+        with self.assertRaises(ValueError):
+            core.issn_check_digit("12345")
+
+
+class IsmnTests(unittest.TestCase):
+    VALID = [
+        ("plain", "M260000438"),
+        ("hyphenated", "M-2600-0043-8"),
+        ("lowercase m", "m-2600-0043-8"),
+        ("all zeros", "M000000001"),
+    ]
+
+    INVALID = [
+        ("wrong final digit", "M-2600-0043-7"),
+        ("too short", "M-2600-004"),
+        ("too long", "M-2600-0043-80"),
+        ("missing M", "2-2600-0043-8"),
+        ("empty string", ""),
+    ]
+
+    def test_valid_codes(self):
+        for label, code in self.VALID:
+            with self.subTest(label):
+                self.assertTrue(core.is_valid_ismn(code))
+
+    def test_invalid_codes(self):
+        for label, code in self.INVALID:
+            with self.subTest(label):
+                self.assertFalse(core.is_valid_ismn(code))
+
+    def test_check_digit_example(self):
+        self.assertEqual(core.ismn_check_digit("M26000043"), "8")
+
+    def test_matches_isbn13_style_prefix(self):
+        # the 13-digit ISMN form (979-0-...) is the same 12 digits run
+        # through isbn13_check_digit as the M-form is through gs1_check_digit.
+        self.assertEqual(core.isbn13_check_digit("979026000043"), "8")
+
+    def test_check_digit_rejects_wrong_length(self):
+        with self.assertRaises(ValueError):
+            core.ismn_check_digit("M123")
+
+    def test_check_digit_rejects_missing_m(self):
+        with self.assertRaises(ValueError):
+            core.ismn_check_digit("226000043")
+
+
 class Gs1Tests(unittest.TestCase):
     # (label, full code, expected check digit function, validator)
     CASES = [

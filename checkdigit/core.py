@@ -1,11 +1,15 @@
-"""Checksum math for ISBN-10, ISBN-13, and GS1 retail barcodes (EAN-13, UPC-A, EAN-8).
+"""Checksum math for ISBN-10/13, ISSN, ISMN, and GS1 retail barcodes (EAN-13, UPC-A, EAN-8).
 
-ISBN-10 uses a mod-11 weighted sum (weights 10..1, check digit can be the
-letter X). ISBN-13 and every GS1 retail barcode share a mod-10 weighted sum
-that alternates weights of 1 and 3. The only thing that differs between
-EAN-13, UPC-A, and EAN-8 is how many digits come before the check digit, so
-they all go through the same gs1_check_digit() rather than three near-copies
-of the same loop.
+ISBN-10 and ISSN both use a mod-11 weighted sum (descending weights, check
+digit can be the letter X); they differ only in payload length and starting
+weight, so they're two short functions rather than a shared one -- sharing
+would cost more in indirection than it'd save in lines. ISBN-13, ISMN, and
+every GS1 retail barcode share a mod-10 weighted sum that alternates weights
+of 1 and 3. The only thing that differs between EAN-13, UPC-A, and EAN-8 is
+how many digits come before the check digit, so they all go through the same
+gs1_check_digit() rather than three near-copies of the same loop. The old
+10-character ISMN goes through it too, once its leading M is swapped for the
+digit value (3) that ISMN assigns it.
 """
 
 import itertools
@@ -116,3 +120,51 @@ def ean8_check_digit(payload):
 def is_valid_ean8(code):
     code = _clean(code)
     return len(code) == 8 and is_valid_gs1(code)
+
+
+def issn_check_digit(payload):
+    payload = _clean(payload)
+    if len(payload) != 7:
+        raise ValueError(f"ISSN payload must be exactly 7 digits, got {payload!r}")
+    _require_digits(payload, "ISSN payload")
+    total = sum(int(d) * w for d, w in zip(payload, range(8, 1, -1)))
+    check = (11 - total % 11) % 11
+    return "X" if check == 10 else str(check)
+
+
+def is_valid_issn(issn):
+    code = _clean(issn)
+    if len(code) != 8:
+        return False
+    payload, check = code[:7], code[7]
+    if not payload.isdigit() or not (check.isdigit() or check == "X"):
+        return False
+    return issn_check_digit(payload) == check
+
+
+def ismn_check_digit(payload):
+    """payload is 'M' followed by the 8-digit body, e.g. 'M26000043'.
+
+    The old 10-character ISMN reuses the GS1 mod-10 algorithm: the leading
+    M is worth 3 (the value ISMN assigns it), the rest is the digit body,
+    and gs1_check_digit does the same reversed-weights sum it does for
+    EAN/UPC. That's also why the 13-digit ISMN (979-0-...) matches
+    isbn13_check_digit exactly -- it's the same 12 digits with 9790 as the
+    prefix instead of M.
+    """
+    payload = _clean(payload)
+    if len(payload) != 9 or payload[0] != "M":
+        raise ValueError(f"ISMN payload must be 'M' followed by 8 digits, got {payload!r}")
+    body = payload[1:]
+    _require_digits(body, "ISMN payload")
+    return gs1_check_digit("3" + body)
+
+
+def is_valid_ismn(ismn):
+    code = _clean(ismn)
+    if len(code) != 10 or code[0] != "M":
+        return False
+    payload, check = code[:9], code[9]
+    if not payload[1:].isdigit() or not check.isdigit():
+        return False
+    return ismn_check_digit(payload) == check
