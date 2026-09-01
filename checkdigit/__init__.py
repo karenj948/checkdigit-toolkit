@@ -17,6 +17,7 @@ from .core import (
     isbn13_check_digit,
     ismn_check_digit,
     issn_check_digit,
+    nearby_valid_codes,
     upca_check_digit,
 )
 
@@ -39,5 +40,6 @@ __all__ = [
     "isbn13_check_digit",
     "ismn_check_digit",
     "issn_check_digit",
+    "nearby_valid_codes",
     "upca_check_digit",
 ]

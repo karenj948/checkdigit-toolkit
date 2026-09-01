@@ -11,18 +11,20 @@ import sys
 from . import core
 
 _SPECS = {
-    "isbn10": (core.is_valid_isbn10, core.isbn10_check_digit, 9, 10),
-    "isbn13": (core.is_valid_isbn13, core.isbn13_check_digit, 12, 13),
-    "issn": (core.is_valid_issn, core.issn_check_digit, 7, 8),
-    "ismn": (core.is_valid_ismn, core.ismn_check_digit, 9, 10),
-    "ean13": (core.is_valid_ean13, core.ean13_check_digit, 12, 13),
-    "upca": (core.is_valid_upca, core.upca_check_digit, 11, 12),
-    "ean8": (core.is_valid_ean8, core.ean8_check_digit, 7, 8),
+    # kind: (validator, check-digit fn, payload length, full length, extra
+    # symbols allowed in the check digit position, beyond plain digits)
+    "isbn10": (core.is_valid_isbn10, core.isbn10_check_digit, 9, 10, "X"),
+    "isbn13": (core.is_valid_isbn13, core.isbn13_check_digit, 12, 13, ""),
+    "issn": (core.is_valid_issn, core.issn_check_digit, 7, 8, "X"),
+    "ismn": (core.is_valid_ismn, core.ismn_check_digit, 9, 10, ""),
+    "ean13": (core.is_valid_ean13, core.ean13_check_digit, 12, 13, ""),
+    "upca": (core.is_valid_upca, core.upca_check_digit, 11, 12, ""),
+    "ean8": (core.is_valid_ean8, core.ean8_check_digit, 7, 8, ""),
 }
 
 
-def _handle_format(kind, code):
-    validate, compute, payload_len, full_len = _SPECS[kind]
+def _handle_format(kind, code, suggest=False):
+    validate, compute, payload_len, full_len, check_symbols = _SPECS[kind]
     cleaned = code.strip().replace("-", "").replace(" ", "")
     if len(cleaned) == payload_len:
         print(compute(cleaned))
@@ -34,6 +36,14 @@ def _handle_format(kind, code):
         payload, given = cleaned[:-1], cleaned[-1].upper()
         expected = compute(payload)
         print(f"invalid: expected check digit {expected}, got {given}", file=sys.stderr)
+        if suggest:
+            candidates = core.nearby_valid_codes(cleaned, validate, check_symbols)
+            if len(candidates) == 1:
+                print(f"suggestion: {candidates[0]}", file=sys.stderr)
+            elif candidates:
+                print(f"suggestions: {', '.join(candidates)}", file=sys.stderr)
+            else:
+                print("suggestion: no single-digit fix makes this valid", file=sys.stderr)
         return 1
     print(
         f"{kind} needs {payload_len} digits (to compute) or {full_len} "
@@ -63,6 +73,11 @@ def build_parser():
     for kind in _SPECS:
         sub = subparsers.add_parser(kind, help=f"compute or validate a {kind} code")
         sub.add_argument("code", help="payload (to compute) or full code (to validate)")
+        sub.add_argument(
+            "--suggest",
+            action="store_true",
+            help="if the full code is invalid, suggest a single-digit fix",
+        )
 
     convert = subparsers.add_parser("convert", help="convert an ISBN-10 to ISBN-13")
     convert.add_argument("code", help="a 10-character ISBN-10")
@@ -76,7 +91,7 @@ def main(argv=None):
 
     if args.command == "convert":
         return _handle_convert(args.code)
-    return _handle_format(args.command, args.code)
+    return _handle_format(args.command, args.code, suggest=args.suggest)
 
 
 if __name__ == "__main__":

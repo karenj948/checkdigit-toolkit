@@ -58,6 +58,10 @@ $ python -m checkdigit.cli isbn13 030640615
 $ python -m checkdigit.cli ean13 4006381333930
 invalid: expected check digit 1, got 0
 
+$ python -m checkdigit.cli isbn10 0306406157 --suggest
+invalid: expected check digit 2, got 7
+suggestion: 0306406152
+
 $ python -m checkdigit.cli convert 0-306-40615-2
 9780306406157
 ```
@@ -65,6 +69,16 @@ $ python -m checkdigit.cli convert 0-306-40615-2
 Give a subcommand a payload (missing its check digit) and it computes the
 check digit. Give it a full code and it validates. Subcommands: `isbn10`,
 `isbn13`, `issn`, `ismn`, `ean13`, `upca`, `ean8`, `convert`.
+
+Add `--suggest` to any format subcommand and, if the code is invalid, it
+tries every single-character substitution (any digit in any position, plus
+`X` in the check digit position for ISBN-10 and ISSN) and reports the ones
+that pass. A single mistyped digit almost always narrows this to one
+suggestion; if it doesn't narrow to exactly one, all of them are printed,
+since there's no way to know which the typist meant from the checksum
+alone. This only catches a single wrong character in a code of the right
+length -- it won't find a fix for a transposed pair of digits or a code
+that's missing a digit entirely.
 
 Installing the package (`pip install -e .`) also gives you a `checkdigit`
 console script that does the same thing without the `-m` invocation.

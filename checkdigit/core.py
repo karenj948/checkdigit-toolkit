@@ -168,3 +168,27 @@ def is_valid_ismn(ismn):
     if not payload[1:].isdigit() or not check.isdigit():
         return False
     return ismn_check_digit(payload) == check
+
+
+def nearby_valid_codes(code, validate, check_symbols=""):
+    """Every code that's one character away from `code` and passes `validate`.
+
+    Meant for guessing what an invalid code was supposed to be when exactly
+    one digit was mistyped -- try every other symbol in every position and
+    keep the ones that pass. `check_symbols` are extra characters (e.g. "X"
+    for ISBN-10/ISSN) that are only tried in the last position, since that's
+    the only place those formats allow a non-digit.
+    """
+    code = _clean(code)
+    results = []
+    for i in range(len(code)):
+        alphabet = "0123456789"
+        if i == len(code) - 1:
+            alphabet += check_symbols
+        for symbol in alphabet:
+            if symbol == code[i]:
+                continue
+            candidate = code[:i] + symbol + code[i + 1:]
+            if validate(candidate):
+                results.append(candidate)
+    return results

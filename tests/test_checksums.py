@@ -195,5 +195,48 @@ class Gs1Tests(unittest.TestCase):
             core.ean8_check_digit("123")
 
 
+class NearbyValidCodesTests(unittest.TestCase):
+    # Every case here starts from a real valid code and flips exactly one of
+    # its characters, so the original is guaranteed to show up as a
+    # candidate: it's one edit away from the broken input and it passes
+    # validate() by construction. Other candidates may exist too (a
+    # checksum has no way to know which single-digit fix the typist meant),
+    # so these check membership, not the full candidate list.
+
+    def test_finds_check_digit_typo(self):
+        # "0306406152" is a valid ISBN-10; check digit typo'd from 2 to 7.
+        candidates = core.nearby_valid_codes("0306406157", core.is_valid_isbn10, "X")
+        self.assertIn("0306406152", candidates)
+
+    def test_finds_payload_digit_typo(self):
+        # same ISBN-10, second payload digit typo'd from 3 to 4.
+        candidates = core.nearby_valid_codes("0406406152", core.is_valid_isbn10, "X")
+        self.assertIn("0306406152", candidates)
+
+    def test_finds_missing_letter_check_digit(self):
+        # "080442957X" is a valid ISBN-10; the X typo'd as a 7.
+        candidates = core.nearby_valid_codes("0804429577", core.is_valid_isbn10, "X")
+        self.assertIn("080442957X", candidates)
+
+    def test_letter_symbols_only_tried_in_last_position(self):
+        # an X earlier in the payload can never be part of a valid ISBN-10,
+        # so it should never show up as a suggested fix.
+        candidates = core.nearby_valid_codes("030X406152", core.is_valid_isbn10, "X")
+        self.assertTrue(all("X" not in candidate[:-1] for candidate in candidates))
+
+    def test_gs1_codes_only_ever_suggest_digits(self):
+        # gs1 formats pass no check_symbols, so nothing but 0-9 is tried.
+        broken = "4006381333930"  # real Nivea EAN-13, check digit off by one
+        candidates = core.nearby_valid_codes(broken, core.is_valid_ean13)
+        self.assertIn("4006381333931", candidates)
+        self.assertTrue(all(candidate.isdigit() for candidate in candidates))
+
+    def test_no_candidates_for_a_code_that_is_valid_already(self):
+        # a valid code differs from every candidate in exactly one position,
+        # so it can never be a "correction" of itself.
+        candidates = core.nearby_valid_codes("0306406152", core.is_valid_isbn10, "X")
+        self.assertNotIn("0306406152", candidates)
+
+
 if __name__ == "__main__":
     unittest.main()
