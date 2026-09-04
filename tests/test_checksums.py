@@ -6,6 +6,7 @@ ones for cases that are hard to find in the wild, like an ISBN-10 with an X
 check digit or an all-zero payload.
 """
 
+import random
 import unittest
 
 from checkdigit import core
@@ -75,6 +76,62 @@ class Isbn13Tests(unittest.TestCase):
     def test_isbn10_to_isbn13(self):
         self.assertEqual(core.isbn10_to_isbn13("0-306-40615-2"), "9780306406157")
         self.assertEqual(core.isbn10_to_isbn13("0-8044-2957-X"), "9780804429573")
+
+
+class Isbn10ToIsbn13RoundTripTests(unittest.TestCase):
+    """Property-based checks for isbn10_to_isbn13, without a hypothesis
+    dependency: generate many random 9-digit payloads under a fixed seed
+    and check invariants that should hold for all of them, rather than
+    hand-picking a handful of examples.
+    """
+
+    SAMPLE_SIZE = 500
+
+    def _random_payloads(self, seed):
+        rng = random.Random(seed)
+        for _ in range(self.SAMPLE_SIZE):
+            yield "".join(str(rng.randint(0, 9)) for _ in range(9))
+
+    def test_converted_code_is_always_a_valid_isbn13(self):
+        for payload in self._random_payloads(seed=0):
+            isbn10 = payload + core.isbn10_check_digit(payload)
+            with self.subTest(isbn10=isbn10):
+                self.assertTrue(core.is_valid_isbn13(core.isbn10_to_isbn13(isbn10)))
+
+    def test_converted_code_keeps_the_original_payload_under_978(self):
+        for payload in self._random_payloads(seed=1):
+            isbn10 = payload + core.isbn10_check_digit(payload)
+            isbn13 = core.isbn10_to_isbn13(isbn10)
+            with self.subTest(isbn10=isbn10):
+                self.assertEqual(isbn13[:3], "978")
+                self.assertEqual(isbn13[3:12], payload)
+
+    def test_conversion_ignores_the_isbn10_check_digit(self):
+        # isbn10_to_isbn13 only reads the first 9 characters of its input --
+        # the 10th is the ISBN-10's own check digit, which carries no
+        # information that survives into the ISBN-13's own check digit.
+        # Swapping it for any other digit must not change the result.
+        for payload in self._random_payloads(seed=2):
+            real_check = core.isbn10_check_digit(payload)
+            forged_check = "0" if real_check != "0" else "1"
+            with self.subTest(payload=payload):
+                self.assertEqual(
+                    core.isbn10_to_isbn13(payload + real_check),
+                    core.isbn10_to_isbn13(payload + forged_check),
+                )
+
+    def test_x_check_digit_payloads_convert_fine(self):
+        # restrict to payloads whose ISBN-10 check digit is X, so the
+        # letter case is actually exercised rather than left to chance.
+        seen_any = False
+        for payload in self._random_payloads(seed=3):
+            if core.isbn10_check_digit(payload) != "X":
+                continue
+            seen_any = True
+            isbn10 = payload + "x"  # lowercase, like a user might type
+            with self.subTest(isbn10=isbn10):
+                self.assertTrue(core.is_valid_isbn13(core.isbn10_to_isbn13(isbn10)))
+        self.assertTrue(seen_any, "sample produced no X-check-digit payloads; widen sample")
 
 
 class IssnTests(unittest.TestCase):
