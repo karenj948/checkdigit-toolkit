@@ -88,6 +88,38 @@ class SuggestTests(unittest.TestCase):
         self.assertNotIn("suggestion", err)
 
 
+class IssnTests(unittest.TestCase):
+    # issn is in _SPECS and covered at the core level, but until now nothing
+    # exercised it through the CLI itself -- every other format subcommand
+    # has at least one test that actually invokes cli.main() with it.
+
+    def test_issn_payload_prints_check_digit(self):
+        code, out, err = run(["issn", "0378595"])
+        self.assertEqual(code, 0)
+        self.assertEqual(out, "5")
+        self.assertEqual(err, "")
+
+    def test_valid_full_issn_prints_valid(self):
+        code, out, err = run(["issn", "0378-5955"])
+        self.assertEqual(code, 0)
+        self.assertEqual(out, "valid")
+
+    def test_invalid_issn_reports_expected_check_digit(self):
+        code, out, err = run(["issn", "0378-5954"])
+        self.assertEqual(code, 1)
+        self.assertIn("expected check digit 5, got 4", err)
+
+    def test_issn_x_check_digit_is_accepted(self):
+        code, out, err = run(["issn", "1000-002X"])
+        self.assertEqual(code, 0)
+        self.assertEqual(out, "valid")
+
+    def test_issn_suggest_finds_check_digit_typo(self):
+        code, out, err = run(["issn", "0378-5954", "--suggest"])
+        self.assertEqual(code, 1)
+        self.assertIn("suggestion: 03785955", err)
+
+
 class LengthErrorTests(unittest.TestCase):
     def test_wrong_length_reports_both_accepted_lengths(self):
         code, out, err = run(["isbn10", "123"])
