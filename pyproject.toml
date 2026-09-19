@@ -26,6 +26,11 @@ classifiers = [
     "Topic :: Text Processing",
 ]
 
+[project.urls]
+Homepage = "https://github.com/karenj948/checkdigit-toolkit"
+Repository = "https://github.com/karenj948/checkdigit-toolkit"
+Issues = "https://github.com/karenj948/checkdigit-toolkit/issues"
+
 [project.scripts]
 checkdigit = "checkdigit.cli:main"
 
